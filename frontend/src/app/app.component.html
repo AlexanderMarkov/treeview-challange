@@ -1,0 +1,36 @@
+<div fxLayout="row" fxLayoutAlign="space-between">
+  <mat-card fxFlex>
+    <mat-card-header>
+      <mat-card-title>CachedTreeView</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <tree-root #cachedTree [nodes]="cachedNodes" [options]="options">
+        <ng-template #treeNodeTemplate let-node let-index="index">
+          <span [style.background-color]="node.data.state === 'removed' ? 'red' : ''">{{ node.data.name }}</span>
+        </ng-template>
+      </tree-root>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-button (click)="addNode()" [disabled]="!cachedTree.treeModel.focusedNode || cachedTree.treeModel.focusedNode.data.state === 'removed'">+</button>
+      <button mat-button (click)="removeNode()" [disabled]="!cachedTree.treeModel.focusedNode">-</button>
+      <button mat-button (click)="applyChanges()">Apply</button>
+      <button mat-button (click)="reset()">Reset</button>
+    </mat-card-actions>
+  </mat-card>
+  <div fxFlex>
+    <button mat-button (click)="move()"
+      [disabled]="!dbTree.treeModel.focusedNode || dbTree.treeModel.focusedNode.data.isRemoved">< < <</button>
+  </div>
+  <mat-card fxFlex>
+    <mat-card-header>
+      <mat-card-title>DBTreeView</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <tree-root #dbTree [nodes]="dbNodes" [options]="options">
+        <ng-template #treeNodeTemplate let-node let-index="index">
+          <span [style.background-color]="node.data.isRemoved ? 'red' : ''">{{ node.data.name }}</span>
+        </ng-template>
+      </tree-root>
+    </mat-card-content>
+  </mat-card>
+</div>
