@@ -1,6 +1,7 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { TreeModule } from 'angular-tree-component';
@@ -10,6 +11,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
 
 @NgModule({
   declarations: [
@@ -18,11 +20,13 @@ import { MatButtonModule } from '@angular/material/button';
   imports: [
     BrowserModule,
     HttpClientModule,
+    FormsModule,
     FlexLayoutModule,
     TreeModule.forRoot(),
     NoopAnimationsModule,
     MatCardModule,
-    MatButtonModule
+    MatButtonModule,
+    MatInputModule
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -1,4 +1,4 @@
-import { Component, ViewChild, OnInit } from '@angular/core';
+import { Component, ViewChild, OnInit, ChangeDetectorRef } from '@angular/core';
 import { TreeComponent, TreeNode } from 'angular-tree-component';
 import { TreeBackendApi, ChangeModel, NodeToInsert, DbNode } from './services/tree-api.service';
 
@@ -10,13 +10,45 @@ import { TreeBackendApi, ChangeModel, NodeToInsert, DbNode } from './services/tr
 
 type CachedNodeState = 'new' | 'removed' | 'renamed' | 'unmodified';
 
-interface CachedNode {
-  id: number;
-  name: string;
-  parentId: number | null;
-  level: number;
-  children: Array<CachedNode>;
-  state: CachedNodeState;
+class CachedNode {
+  private readonly _originalName: string;
+  private _name: string;
+  private _state: CachedNodeState;
+
+  public get name() {
+    return this._name;
+  }
+
+  public set name(value: string) {
+    this._name = value;
+    if (this._state === 'unmodified' && this._name !== this._originalName) {
+      this._state = 'renamed';
+    }
+  }
+
+  public get state(): CachedNodeState {
+    return this._state;
+  }
+
+  public children = new Array<CachedNode>();
+
+  constructor(
+    public readonly id: number,
+    public readonly level: number,
+    public readonly parentId: number | null,
+    name: string
+  ) {
+    this._originalName = this._name = name;
+    if (id < 0) {
+      this._state = 'new';
+    } else {
+      this._state = 'unmodified';
+    }
+  }
+
+  markAsRemoved() {
+    this._state = 'removed';
+  }
 }
 
 
@@ -32,7 +64,7 @@ export class AppComponent implements OnInit {
   @ViewChild('cachedTree', { static: true })
   private _cachedTree: TreeComponent;
 
-  private _listOfCachedNodes = new Array<CachedNode>();
+  private _flatCachedNodes = new Array<CachedNode>();
 
   dbNodes: Array<DbNode> = [];
   cachedNodes: Array<CachedNode> = [];
@@ -40,7 +72,10 @@ export class AppComponent implements OnInit {
 
   private _nextNewNodeIndex = -1;
 
-  constructor(private _backend: TreeBackendApi) {}
+  constructor(
+    private _backend: TreeBackendApi,
+    private _cdRef: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     this.init();
@@ -55,8 +90,10 @@ export class AppComponent implements OnInit {
         // this._nextNewNodeIndex = -1;
 
         this.cachedNodes = [];
-        this._listOfCachedNodes = [];
+        this._flatCachedNodes = [];
         this._cachedTree.treeModel.update();
+
+        this._cdRef.detectChanges();
       }
     });
   }
@@ -64,25 +101,28 @@ export class AppComponent implements OnInit {
   addNode() {
     const focusedNode = this._cachedTree.treeModel.getFocusedNode();
     const id = this._nextNewNodeIndex--;
-    const newNode: CachedNode = {
+    const newNode = new CachedNode(
       id,
-      name: `New Node (${Math.abs(id)})`,
-      children: [],
-      state: 'new',
-      level: focusedNode.data.level + 1,
-      parentId: focusedNode.id
-    };
+      focusedNode.data.level + 1,
+      focusedNode.id,
+      `New Node (${Math.abs(id)})`
+    );
     focusedNode.data.children.push(newNode);
-    this._listOfCachedNodes.push(newNode);
+    this._flatCachedNodes.push(newNode);
     this._cachedTree.treeModel.update();
   }
 
   removeNode() {
-    const node: CachedNode = this._cachedTree.treeModel.getFocusedNode().data;
-    if (node.state === 'new') {
+    const node = this._cachedTree.treeModel.getFocusedNode();
+    if (node.data.state === 'new') {
       // TODO: remove it on client side
+      if (node.realParent) {
+        const children = (node.realParent.data as CachedNode).children;
+        const index = children.findIndex(x => x.id === node.id);
+        children.splice(index, 1);
+      }
     } else {
-      node.state = 'removed';
+      node.data.markAsRemoved();
     }
     this._cachedTree.treeModel.update();
   }
@@ -96,31 +136,25 @@ export class AppComponent implements OnInit {
   }
 
   move() {
-    const dbNodeModel: TreeNode = this._dbTree.treeModel.focusedNode;
-    const dbNodeId = dbNodeModel.id;
+    const dbNode: TreeNode = this._dbTree.treeModel.focusedNode;
 
-    const existsInCache = !!this._cachedTree.treeModel.getNodeById(dbNodeId);
+    const existsInCache = !!this._cachedTree.treeModel.getNodeById(dbNode.id);
     if (existsInCache) {
       return;
     }
 
-    const parentId = dbNodeModel.realParent ? dbNodeModel.realParent.id : null;
+    const parentId = dbNode.realParent && dbNode.realParent.id;
 
-    const cachedNode: CachedNode = {
-      id: dbNodeModel.data.id,
-      name: dbNodeModel.data.name,
-      level: dbNodeModel.level,
-      children: [],
-      state: 'unmodified',
-      parentId
-    };
-
-    this._listOfCachedNodes.push(cachedNode);
-    this._listOfCachedNodes = this._listOfCachedNodes.sort(
-      (a, b) => a.level - b.level
+    const cachedNode = new CachedNode(
+      dbNode.data.id,
+      dbNode.level,
+      parentId,
+      dbNode.data.name
     );
 
-    this.cachedNodes = [...this._listToTree(this._listOfCachedNodes)];
+    this._flatCachedNodes.push(cachedNode);
+
+    this.cachedNodes = this._flatNodesToTree(this._flatCachedNodes);
   }
 
   convertToNodeToInsert(node: CachedNode): NodeToInsert {
@@ -132,19 +166,28 @@ export class AppComponent implements OnInit {
   }
 
   applyChanges() {
-    const sortedNodes = this._listOfCachedNodes.sort(
+    const sortedNodes = this._flatCachedNodes.sort(
       (a, b) => a.level - b.level
     );
 
     const newNodes = sortedNodes.filter(x => x.state === 'new');
     const renamedNodes = sortedNodes.filter(x => x.state === 'renamed');
-    const nodesToRemove = sortedNodes.filter(x => x.state === 'removed').map(x => x.id);
+    const nodesToRemove = sortedNodes
+      .filter(x => x.state === 'removed')
+      .map(x => x.id);
 
-    const nodesToInsert = this._listToTree(newNodes).map(node => this.convertToNodeToInsert(node));
+    const nodesToInsert = this._flatNodesToTree(newNodes).map(node =>
+      this.convertToNodeToInsert(node)
+    );
+    const nodesToUpdate = renamedNodes.reduce((r, n) => {
+      r[n.id] = n.name;
+      return r;
+    }, {});
 
     const changeModel: ChangeModel = {
       nodesToInsert,
-      nodesToRemove
+      nodesToRemove,
+      nodesToUpdate
     };
 
     this._backend.applyChanges(changeModel).subscribe({
@@ -152,28 +195,25 @@ export class AppComponent implements OnInit {
     });
   }
 
-  private _listToTree(list: Array<CachedNode>): Array<CachedNode> {
+  private _flatNodesToTree(list: Array<CachedNode>): Array<CachedNode> {
     const roots = [];
     const map = {};
 
-    list = [...list];
+    list.sort((a, b) => a.level - b.level);
 
-    for (let i = 0; i < list.length; ++i) {
-      map[list[i].id] = i;
-      list[i].children = [];
-    }
-    for (let i = 0; i < list.length; ++i) {
-      const node = list[i];
-      if (node.parentId) {
-        if (map[node.parentId] != null) {
-          list[map[node.parentId]].children.push(node);
-        } else {
-          roots.push(node); // TODO: Check level?
-        }
+    list.forEach(node => {
+      map[node.id] = node;
+      node.children = [];
+    });
+
+    list.forEach(node => {
+      if (map[node.parentId]) {
+        map[node.parentId].children.push(node);
       } else {
         roots.push(node);
       }
-    }
+    });
+
     return roots;
   }
 }

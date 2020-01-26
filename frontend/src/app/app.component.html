@@ -6,7 +6,10 @@
     <mat-card-content>
       <tree-root #cachedTree [nodes]="cachedNodes" [options]="options">
         <ng-template #treeNodeTemplate let-node let-index="index">
-          <span [style.background-color]="node.data.state === 'removed' ? 'red' : ''">{{ node.data.name }}</span>
+          <span *ngIf="!node.isFocused || node.data.state === 'removed'; else editNode" [style.background-color]="node.data.state === 'removed' ? 'red' : ''">{{ node.data.name }}</span>
+          <ng-template #editNode>
+            <input type="text" autofocus [(ngModel)]="node.data.name">
+          </ng-template>
         </ng-template>
       </tree-root>
     </mat-card-content>
