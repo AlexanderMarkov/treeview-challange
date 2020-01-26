@@ -37,6 +37,8 @@ namespace TreeApi.Services
 			await insertAsync(changeModel.NodesToInsert);
 			await updateAsync(changeModel.NodesToUpdate);
 			await removeAsync(changeModel.NodesToRemove);
+
+			await _context.SaveChangesAsync();
 		}
 
 		private async Task insertAsync(List<NewNodeDto> nodeDtos)
@@ -56,7 +58,6 @@ namespace TreeApi.Services
 			var dbNodes = nodeDtos.Select(mapDto);
 
 			await _context.AddRangeAsync(dbNodes);
-			await _context.SaveChangesAsync();
 		}
 
 		private async Task updateAsync(Dictionary<string, string> map)
@@ -69,8 +70,6 @@ namespace TreeApi.Services
 			var entities = await _context.Nodes.Where(x => map.Keys.Contains(x.Id.ToString())).ToListAsync();
 
 			entities.ForEach(x => x.Name = map[x.Id.ToString()]);
-
-			await _context.SaveChangesAsync();
 		}
 
 		private async Task removeAsync(HashSet<int?> ids)
@@ -96,8 +95,6 @@ namespace TreeApi.Services
 				.Where(x => ids.Contains(x.Id))
 				.ToList()
 				.ForEach(cascadeMarkAsRemoved);
-
-			await _context.SaveChangesAsync();
 		}
 	}
 }

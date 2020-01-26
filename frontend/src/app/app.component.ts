@@ -3,6 +3,7 @@ import { TreeComponent  } from 'angular-tree-component';
 import { TreeBackendApi, DbNode } from './services/tree-api.service';
 import { CachedNode } from './models/cached-node';
 import { CachedTreeModelService } from './services/cached-tree-model.service';
+import { tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -30,7 +31,10 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this._init();
+    this._cachedTreeModel = new CachedTreeModelService(
+      this._cachedTree.treeModel
+    );
+    this._refreshRootAndClearCache();
   }
 
   addNewNode() {
@@ -47,31 +51,36 @@ export class AppComponent implements OnInit {
   }
 
   reset() {
-    this._backend.reset().subscribe({
-      next: () => {
-        this._init();
-      }
-    });
+    this._backend
+      .reset()
+      .pipe(tap(() => this._refreshRootAndClearCache()))
+      .subscribe();
   }
 
   applyChanges() {
     const changeModel = this._cachedTreeModel.getChangeModel();
 
-    this._backend.applyChanges(changeModel).subscribe({
-      next: () => this._init()
-    });
+    this._backend
+      .applyChanges(changeModel)
+      .pipe(tap(() => this._refreshRootAndClearCache()))
+      .subscribe();
   }
 
-  private _init() {
-    this._backend.getRoot().subscribe({
-      next: root => {
-        this.dbNodes = [root];
-        this._dbTree.treeModel.update();
+  private _refreshRootAndClearCache() {
+    this._backend
+      .getRoot()
+      .pipe(
+        tap(root => {
+          this.dbNodes = [root];
+          this._dbTree.treeModel.update();
 
-        this._cachedTreeModel = new CachedTreeModelService(this._cachedTree.treeModel);
+          this._cachedTreeModel = new CachedTreeModelService(
+            this._cachedTree.treeModel
+          );
 
-        this._cdRef.detectChanges();
-      }
-    });
+          this._cdRef.detectChanges();
+        })
+      )
+      .subscribe();
   }
 }
