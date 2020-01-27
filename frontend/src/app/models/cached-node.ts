@@ -24,20 +24,22 @@ export class CachedNode {
 
   constructor(
     public readonly id: number,
-    public readonly level: number,
     public readonly parentId: number | null,
-    name: string
+    name: string,
+    state: CachedNodeState
   ) {
     this._originalName = this._name = name;
-    if (id < 0) {
-      this._state = 'new';
-    } else {
-      this._state = 'unmodified';
-    }
+    this._state = state;
   }
 
   markAsRemoved() {
     this._state = 'removed';
+  }
+
+  markAsUnmodified() {
+    if (this._state !== 'removed') {
+      this._state = 'unmodified';
+    }
   }
 
   addChild(child: CachedNode) {

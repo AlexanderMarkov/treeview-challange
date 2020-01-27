@@ -11,6 +11,7 @@ export interface DbNode {
 }
 
 export interface NodeToInsert {
+  id: number;
   parentId: number | null;
   name: string;
   children: Array<this>;
@@ -27,8 +28,8 @@ export interface ChangeModel {
 @Injectable({ providedIn: 'root' })
 export class TreeBackendApi {
 
-  private readonly _baseUrl = '/api/tree';
-  // private readonly _baseUrl = 'http://localhost:5000/tree';
+  // private readonly _baseUrl = '/api/tree';
+  private readonly _baseUrl = 'http://localhost:5000/tree';
 
   constructor(private _http: HttpClient) {}
 

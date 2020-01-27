@@ -50,6 +50,7 @@ namespace TreeApi.Services
 
 			Node mapDto(NewNodeDto dto) => new Node
 			{
+				Id = dto.Id,
 				Name = dto.Name,
 				ParentId = dto.ParentId,
 				Children = dto.Children.Select(mapDto).ToHashSet()
@@ -72,7 +73,7 @@ namespace TreeApi.Services
 			entities.ForEach(x => x.Name = map[x.Id.ToString()]);
 		}
 
-		private async Task removeAsync(HashSet<int?> ids)
+		private async Task removeAsync(HashSet<long?> ids)
 		{
 			if (ids == null || ids.Count == 0)
 			{
