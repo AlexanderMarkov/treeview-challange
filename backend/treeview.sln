@@ -5,7 +5,10 @@ VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TreeApi", "TreeApi\TreeApi.csproj", "{05DC5602-19C3-439D-BD2A-6023B6F62504}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeApi.Tests", "TreeApi.Tests\TreeApi.Tests.csproj", "{88016198-2C08-48EB-A395-F0D5953F606A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TreeApi.Tests", "TreeApi.Tests\TreeApi.Tests.csproj", "{88016198-2C08-48EB-A395-F0D5953F606A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{05DC5602-19C3-439D-BD2A-6023B6F62504} = {05DC5602-19C3-439D-BD2A-6023B6F62504}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
