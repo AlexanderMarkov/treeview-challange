@@ -1,7 +1,7 @@
 version: '3'
 services:
   server:
-    build: backend/
+    build: backend/TreeApi
   client:
     build: frontend/
     ports:
