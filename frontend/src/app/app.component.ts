@@ -46,8 +46,12 @@ export class AppComponent implements OnInit {
   }
 
   addDbNode() {
-    const dbNode = this._dbTree.treeModel.getFocusedNode();
-    this._cachedTreeModel.addDbNode(dbNode);
+    const id = this._dbTree.treeModel.getFocusedNode().id;
+
+    this._backend
+      .getNodeById(id)
+      .pipe(tap(dbNode => this._cachedTreeModel.addDbNode(dbNode)))
+      .subscribe();
   }
 
   reset() {

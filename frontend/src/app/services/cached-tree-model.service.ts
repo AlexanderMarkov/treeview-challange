@@ -1,6 +1,6 @@
 import { TreeModel, TreeNode } from 'angular-tree-component';
 import { CachedNode } from '../models/cached-node';
-import { ChangeModel, NodeToInsert } from './tree-api.service';
+import { ChangeModel, NodeToInsert, DbNode } from './tree-api.service';
 
 export class CachedTreeModelService {
   private _flatCachedNodes = new Array<CachedNode>();
@@ -29,18 +29,16 @@ export class CachedTreeModelService {
     this._treeModel.update();
   }
 
-  addDbNode(dbNode: TreeNode) {
+  addDbNode(dbNode: DbNode) {
     const existsInCache = !!this._treeModel.getNodeById(dbNode.id);
     if (existsInCache) {
       return;
     }
 
-    const parentId = dbNode.realParent && dbNode.realParent.id;
-
     const cachedNode = new CachedNode(
-      dbNode.data.id,
-      parentId,
-      dbNode.data.name,
+      dbNode.id,
+      dbNode.parentId,
+      dbNode.name,
       'unmodified'
     );
 

@@ -37,6 +37,10 @@ export class TreeBackendApi {
     return this._http.get<DbNode>(this._baseUrl);
   }
 
+  getNodeById(id: number): Observable<DbNode> {
+    return this._http.get<DbNode>(`${this._baseUrl}/${id}`);
+  }
+
   reset(): Observable<any> {
     return this._http.post(`${this._baseUrl}/reset`, null);
   }

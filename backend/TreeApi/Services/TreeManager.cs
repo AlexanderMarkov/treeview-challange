@@ -11,6 +11,7 @@ namespace TreeApi.Services
 	public interface ITreeManager
 	{
 		Task<Node> GetRootWithRecursiveChildrenAsync();
+		Task<Node> GetNodeByIdAsync(long id);
 		Task ResetAsync();
 		Task ApplyChangesAsync(ChangeModel changeModel);
 	}
@@ -39,6 +40,11 @@ namespace TreeApi.Services
 			await removeAsync(changeModel.NodesToRemove);
 
 			await _context.SaveChangesAsync();
+		}
+
+		public async Task<Node> GetNodeByIdAsync(long id)
+		{
+			return await _context.Nodes.SingleAsync(x => x.Id == id);
 		}
 
 		private async Task insertAsync(List<NewNodeDto> nodeDtos)
@@ -97,5 +103,6 @@ namespace TreeApi.Services
 				.ToList()
 				.ForEach(cascadeMarkAsRemoved);
 		}
+
 	}
 }

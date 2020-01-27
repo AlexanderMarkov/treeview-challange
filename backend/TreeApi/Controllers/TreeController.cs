@@ -16,6 +16,9 @@ namespace TreeApi.Controllers
 		[HttpGet]
 		public async Task<Node> GetRoot() => await _treeManager.GetRootWithRecursiveChildrenAsync();
 
+		[HttpGet("{id:long}")]
+		public async Task<Node> GetNodeById(long id) => await _treeManager.GetNodeByIdAsync(id);
+
 		[HttpPut]
 		public async Task ApplyChanges([FromBody]ChangeModel model) => await _treeManager.ApplyChangesAsync(model);
 
