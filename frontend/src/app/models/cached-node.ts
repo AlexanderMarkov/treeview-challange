@@ -40,10 +40,14 @@ export class CachedNode {
   }
 
   addChild(child: CachedNode) {
-    if (this.state === 'removed') {
-      child.markAsRemoved();
-    }
     this.children.push(child);
+  }
+
+  inheritRemovedState(isParentRemoved?: boolean) {
+    if (isParentRemoved) {
+      this.markAsRemoved();
+    }
+    this.children.forEach(c => c.inheritRemovedState(this.isRemoved));
   }
 
   clearChildren() {

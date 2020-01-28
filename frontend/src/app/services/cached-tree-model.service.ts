@@ -1,4 +1,4 @@
-import { TreeModel, TreeNode } from 'angular-tree-component';
+import { TreeModel } from 'angular-tree-component';
 import { CachedNode } from '../models/cached-node';
 import { ChangeModel, NodeToInsert, DbNode } from './tree-api.service';
 
@@ -45,6 +45,8 @@ export class CachedTreeModelService {
     this._flatCachedNodes.push(cachedNode);
 
     this.nodes = this._flatNodesToTree(this._flatCachedNodes);
+    this.nodes.forEach(root => root.inheritRemovedState());
+    this._treeModel.update();
   }
 
   removeFocusedNode() {
