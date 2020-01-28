@@ -49,6 +49,7 @@ export class CachedTreeModelService {
 
   removeFocusedNode() {
     const node = this._treeModel.getFocusedNode();
+    node.data.state = 'removed';
     this._cascadeMarkAsRemovedOrDelete(node.data);
     this.nodes = this._flatNodesToTree(this._flatCachedNodes);
     this._treeModel.update();

@@ -47,7 +47,6 @@ export class AppComponent implements OnInit {
 
   addDbNode() {
     const id = this._dbTree.treeModel.getFocusedNode().id;
-
     this._backend
       .getNodeById(id)
       .pipe(tap(dbNode => this._cachedTreeModel.addDbNode(dbNode)))

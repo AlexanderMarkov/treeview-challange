@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
 using TreeApi.Models;
 using Xunit;
 using FluentAssertions;
 using TreeApi.Services;
-using System.Collections.Generic;
 
 namespace TreeApi.Tests
 {
@@ -14,11 +12,9 @@ namespace TreeApi.Tests
 		[Fact]
 		public async Task ReturnSingleRoot()
 		{
-			var options = new DbContextOptionsBuilder<TreeDbContext>()
-				.UseInMemoryDatabase(databaseName: nameof(ReturnSingleRoot))
-				.Options;
+			var provider = new TestTreeDbContextProvider(nameof(ReturnSingleRoot));
 
-			using (var context = new TreeDbContext(options))
+			using (var context = provider.CreateContext())
 			{
 				await context.Nodes.AddAsync(new Node
 				{
@@ -28,41 +24,31 @@ namespace TreeApi.Tests
 				await context.SaveChangesAsync();
 			}
 
-			using (var context = new TreeDbContext(options))
+			var manager = new TreeManager(provider);
+			var root = await manager.GetRootWithRecursiveChildrenAsync();
+			root.Should().BeEquivalentTo(new Node
 			{
-				var manager = new TreeManager(context);
-				var root = await manager.GetRootWithRecursiveChildrenAsync();
-				root.Should().BeEquivalentTo(new Node
-				{
-					Id = 1,
-					Name = "Root"
-				});
-			}
+				Id = 1,
+				Name = "Root"
+			});
 		}
 
 		[Fact]
 		public async Task ReturnNullIfRootDoesNotExist()
 		{
-			var options = new DbContextOptionsBuilder<TreeDbContext>()
-				.UseInMemoryDatabase(databaseName: nameof(ReturnNullIfRootDoesNotExist))
-				.Options;
+			var provider = new TestTreeDbContextProvider(nameof(ReturnNullIfRootDoesNotExist));
 
-			using (var context = new TreeDbContext(options))
-			{
-				var manager = new TreeManager(context);
-				var root = await manager.GetRootWithRecursiveChildrenAsync();
-				root.Should().BeNull();
-			}
+			var manager = new TreeManager(provider);
+			var root = await manager.GetRootWithRecursiveChildrenAsync();
+			root.Should().BeNull();
 		}
 
 		[Fact]
 		public async Task ThrowIfMoreThanOneRoot()
 		{
-			var options = new DbContextOptionsBuilder<TreeDbContext>()
-				.UseInMemoryDatabase(databaseName: nameof(ReturnSingleRoot))
-				.Options;
+			var provider = new TestTreeDbContextProvider(nameof(ThrowIfMoreThanOneRoot));
 
-			using (var context = new TreeDbContext(options))
+			using (var context = provider.CreateContext())
 			{
 				await context.Nodes.AddRangeAsync(
 					new Node
@@ -79,12 +65,9 @@ namespace TreeApi.Tests
 				await context.SaveChangesAsync();
 			}
 
-			using (var context = new TreeDbContext(options))
-			{
-				var manager = new TreeManager(context);
-				Func<Task> action = async () => await manager.GetRootWithRecursiveChildrenAsync();
-				await action.Should().ThrowAsync<InvalidOperationException>("Sequence contains more than one matching element");
-			}
+			var manager = new TreeManager(provider);
+			Func<Task> action = async () => await manager.GetRootWithRecursiveChildrenAsync();
+			await action.Should().ThrowAsync<InvalidOperationException>("Sequence contains more than one matching element");
 		}
 	}
 }

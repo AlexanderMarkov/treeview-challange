@@ -3,7 +3,11 @@ export type CachedNodeState = 'new' | 'removed' | 'renamed' | 'unmodified';
 export class CachedNode {
   private readonly _originalName: string;
   private _name: string;
-  private _state: CachedNodeState;
+  private _isRemoved = false;
+
+  public get isRemoved() {
+    return this._isRemoved;
+  }
 
   public get name() {
     return this._name;
@@ -11,13 +15,9 @@ export class CachedNode {
 
   public set name(value: string) {
     this._name = value;
-    if (this._state === 'unmodified' && this._name !== this._originalName) {
-      this._state = 'renamed';
+    if (this.state === 'unmodified' && this._name !== this._originalName) {
+      this.state = 'renamed';
     }
-  }
-
-  public get state(): CachedNodeState {
-    return this._state;
   }
 
   public readonly children = new Array<CachedNode>();
@@ -26,24 +26,21 @@ export class CachedNode {
     public readonly id: number,
     public readonly parentId: number | null,
     name: string,
-    state: CachedNodeState
+    public state: CachedNodeState
   ) {
     this._originalName = this._name = name;
-    this._state = state;
   }
 
   markAsRemoved() {
-    this._state = 'removed';
+    this._isRemoved = true;
   }
 
   markAsUnmodified() {
-    if (this._state !== 'removed') {
-      this._state = 'unmodified';
-    }
+    this.state = 'unmodified';
   }
 
   addChild(child: CachedNode) {
-    if (this._state === 'removed') {
+    if (this.state === 'removed') {
       child.markAsRemoved();
     }
     this.children.push(child);

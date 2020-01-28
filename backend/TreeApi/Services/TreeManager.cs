@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,33 +19,38 @@ namespace TreeApi.Services
 
 	public class TreeManager : ITreeManager
 	{
-		private readonly TreeDbContext _context;
+		private readonly ITreeDbContextProvider _contextProvider;
 
-		public TreeManager(TreeDbContext context)
+		public TreeManager(ITreeDbContextProvider contextProvider)
 		{
-			_context = context;
+			_contextProvider = contextProvider;
 		}
 
 		public async Task<Node> GetRootWithRecursiveChildrenAsync()
 		{
-			var allNodes = await _context.Nodes.ToListAsync();
+			using var context = _contextProvider.CreateContext();
+
+			var allNodes = await context.Nodes.ToListAsync();
 			return allNodes.SingleOrDefault(x => x.ParentId == null);
 		}
 
-		public async Task ResetAsync() => await _context.ResetAsync();
+		public async Task ResetAsync()
+		{
+			using var context = _contextProvider.CreateContext();
+			await context.ResetAsync();
+		}
 
 		public async Task ApplyChangesAsync(ChangeModel changeModel)
 		{
 			await insertAsync(changeModel.NodesToInsert);
 			await updateAsync(changeModel.NodesToUpdate);
 			await removeAsync(changeModel.NodesToRemove);
-
-			await _context.SaveChangesAsync();
 		}
 
 		public async Task<Node> GetNodeByIdAsync(long id)
 		{
-			return await _context.Nodes.SingleAsync(x => x.Id == id);
+			using var context = _contextProvider.CreateContext();
+			return await context.Nodes.SingleAsync(x => x.Id == id);
 		}
 
 		private async Task insertAsync(List<NewNodeDto> nodeDtos)
@@ -54,6 +60,8 @@ namespace TreeApi.Services
 				return;
 			}
 
+			using var context = _contextProvider.CreateContext();
+
 			Node mapDto(NewNodeDto dto) => new Node
 			{
 				Id = dto.Id,
@@ -62,9 +70,10 @@ namespace TreeApi.Services
 				Children = dto.Children.Select(mapDto).ToHashSet()
 			};
 
-			var dbNodes = nodeDtos.Select(mapDto);
+			var dbNodes = nodeDtos.Select(mapDto).ToList();
 
-			await _context.AddRangeAsync(dbNodes);
+			await context.AddRangeAsync(dbNodes);
+			await context.SaveChangesAsync();
 		}
 
 		private async Task updateAsync(Dictionary<string, string> map)
@@ -74,35 +83,81 @@ namespace TreeApi.Services
 				return;
 			}
 
-			var entities = await _context.Nodes.Where(x => map.Keys.Contains(x.Id.ToString())).ToListAsync();
+			using var context = _contextProvider.CreateContext();
 
-			entities.ForEach(x => x.Name = map[x.Id.ToString()]);
+			foreach (var pair in map)
+			{
+				var node = new Node
+				{
+					Id = long.Parse(pair.Key),
+					Name = pair.Value
+				};
+
+				context.Entry(node).Property(x => x.Name).IsModified = true;
+			}
+
+			await context.SaveChangesAsync();
 		}
 
-		private async Task removeAsync(HashSet<long?> ids)
+		private async Task removeAsync(HashSet<long> ids)
 		{
 			if (ids == null || ids.Count == 0)
 			{
 				return;
 			}
 
-			void cascadeMarkAsRemoved(Node node)
+			using var context = _contextProvider.CreateContext();
+			context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+			foreach (var id in ids)
 			{
-				node.IsRemoved = true;
-				foreach (var c in node.Children)
+				var node = new Node
 				{
-					cascadeMarkAsRemoved(c);
-				}
+					Id = id,
+					IsRemoved = true
+				};
+
+				context.Entry(node).Property(x => x.IsRemoved).IsModified = true;
 			}
 
-			// Quick & Dirty
-			var allNodes = await _context.Nodes.ToListAsync();
+			await context.SaveChangesAsync();
 
-			allNodes
-				.Where(x => ids.Contains(x.Id))
-				.ToList()
-				.ForEach(cascadeMarkAsRemoved);
+			/* Cascade mark all children as removed without recursion */
+			const int numberOfItemsInBatch = 2;
+
+			var parentIdsQueue = new Queue<long>(ids);
+
+			while (parentIdsQueue.TryDequeue(out long parentId))
+			{
+				var childrenCount = await context.Nodes.LongCountAsync(x => x.ParentId == parentId);
+				var numberOfBatches = (long)Math.Ceiling(childrenCount / (double)numberOfItemsInBatch);
+
+				for (var i = 1; i <= numberOfBatches; i++)
+				{
+					var childrenIds =
+						await context.Nodes
+							.Where(x => x.ParentId == parentId)
+							.Skip((i - 1) * numberOfItemsInBatch)
+							.Take(numberOfItemsInBatch)
+							.Select(x => x.Id)
+							.ToListAsync();
+
+					childrenIds.ForEach(id =>
+					{
+						var node = new Node
+						{
+							Id = id,
+							IsRemoved = true
+						};
+
+						context.Entry(node).Property(x => x.IsRemoved).IsModified = true;
+
+						parentIdsQueue.Enqueue(id);
+					});
+
+					await context.SaveChangesAsync();
+				}
+			}
 		}
-
 	}
 }
