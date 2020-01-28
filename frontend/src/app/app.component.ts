@@ -2,7 +2,7 @@ import { Component, ViewChild, OnInit, ChangeDetectorRef } from '@angular/core';
 import { TreeComponent  } from 'angular-tree-component';
 import { TreeBackendApi, DbNode } from './services/tree-api.service';
 import { CachedNode } from './models/cached-node';
-import { CachedTreeModelService } from './services/cached-tree-model.service';
+import { CachedTreeService } from './services/cached-tree.service';
 import { tap } from 'rxjs/operators';
 
 @Component({
@@ -17,7 +17,7 @@ export class AppComponent implements OnInit {
   @ViewChild('cachedTree', { static: true })
   private _cachedTree: TreeComponent;
 
-  private _cachedTreeModel: CachedTreeModelService;
+  private _cachedTreeModel: CachedTreeService;
 
   dbNodes: Array<DbNode> = [];
 
@@ -31,7 +31,7 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this._cachedTreeModel = new CachedTreeModelService(
+    this._cachedTreeModel = new CachedTreeService(
       this._cachedTree.treeModel
     );
     this._refreshRoot();
@@ -58,7 +58,7 @@ export class AppComponent implements OnInit {
       .reset()
       .pipe(tap(() => {
         this._refreshRoot();
-        this._cachedTreeModel = new CachedTreeModelService(
+        this._cachedTreeModel = new CachedTreeService(
           this._cachedTree.treeModel
         );
       }))

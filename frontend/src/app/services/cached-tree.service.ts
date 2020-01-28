@@ -2,7 +2,7 @@ import { TreeModel } from 'angular-tree-component';
 import { CachedNode } from '../models/cached-node';
 import { ChangeModel, NodeToInsert, DbNode } from './tree-api.service';
 
-export class CachedTreeModelService {
+export class CachedTreeService {
   private _flatCachedNodes = new Array<CachedNode>();
 
   private _nextNewNodeIndexIterator = (function*() {
@@ -44,26 +44,30 @@ export class CachedTreeModelService {
 
     this._flatCachedNodes.push(cachedNode);
 
+    this._flatNodesToTree(this._flatCachedNodes).forEach(root => {
+      root.cascadeInheritRemovedState();
+    });
+    // Delete all 'new' marked as removed nodes
+    this._flatCachedNodes = this._flatCachedNodes.filter(x => !(x.unsavedState === 'new' && x.isRemoved));
     this.nodes = this._flatNodesToTree(this._flatCachedNodes);
-    this.nodes.forEach(root => root.inheritRemovedState());
     this._treeModel.update();
   }
 
   removeFocusedNode() {
-    const node = this._treeModel.getFocusedNode();
-    node.data.state = 'removed';
-    this._cascadeMarkAsRemovedOrDelete(node.data);
+    const node = this._treeModel.getFocusedNode().data as CachedNode;
+    node.unsavedState = 'removed';
+    this._cascadeMarkAsRemovedOrDelete(node);
     this.nodes = this._flatNodesToTree(this._flatCachedNodes);
     this._treeModel.update();
   }
 
   getChangeModel(): ChangeModel {
-    const newNodes = this._flatCachedNodes.filter(x => x.state === 'new');
+    const newNodes = this._flatCachedNodes.filter(x => x.unsavedState === 'new');
     const renamedNodes = this._flatCachedNodes.filter(
-      x => x.state === 'renamed'
+      x => x.unsavedState === 'renamed'
     );
     const nodesToRemove = this._flatCachedNodes
-      .filter(x => x.state === 'removed')
+      .filter(x => x.unsavedState === 'removed')
       .map(x => x.id);
 
     const nodesToInsert = this._flatNodesToTree(newNodes).map(node =>
@@ -88,7 +92,7 @@ export class CachedTreeModelService {
   }
 
   private _cascadeMarkAsRemovedOrDelete(node: CachedNode) {
-    if (node.state === 'new') {
+    if (node.unsavedState === 'new') {
       const index = this._flatCachedNodes.findIndex(x => x.id === node.id);
       this._flatCachedNodes.splice(index, 1);
     } else {
