@@ -11,6 +11,7 @@ export interface DbNode {
 }
 
 export interface NodeToInsert {
+  id: number;
   parentId: number | null;
   name: string;
   children: Array<this>;
@@ -34,6 +35,10 @@ export class TreeBackendApi {
 
   getRoot(): Observable<DbNode> {
     return this._http.get<DbNode>(this._baseUrl);
+  }
+
+  getNodeById(id: number): Observable<DbNode> {
+    return this._http.get<DbNode>(`${this._baseUrl}/${id}`);
   }
 
   reset(): Observable<any> {

@@ -1,14 +1,13 @@
 import { TreeModel, TreeNode } from 'angular-tree-component';
 import { CachedNode } from '../models/cached-node';
-import { ChangeModel, NodeToInsert } from './tree-api.service';
+import { ChangeModel, NodeToInsert, DbNode } from './tree-api.service';
 
 export class CachedTreeModelService {
   private _flatCachedNodes = new Array<CachedNode>();
 
   private _nextNewNodeIndexIterator = (function*() {
-    let index = -1;
     while (true) {
-      yield index--;
+      yield + new Date();
     }
   })();
 
@@ -21,28 +20,26 @@ export class CachedTreeModelService {
     const id = this._nextNewNodeIndexIterator.next().value;
     const newNode = new CachedNode(
       id,
-      focusedNode.data.level + 1,
       focusedNode.id,
-      `New Node (${Math.abs(id)})`
+      `New Node (${Math.abs(id)})`,
+      'new'
     );
     focusedNode.data.children.push(newNode);
     this._flatCachedNodes.push(newNode);
     this._treeModel.update();
   }
 
-  addDbNode(dbNode: TreeNode) {
+  addDbNode(dbNode: DbNode) {
     const existsInCache = !!this._treeModel.getNodeById(dbNode.id);
     if (existsInCache) {
       return;
     }
 
-    const parentId = dbNode.realParent && dbNode.realParent.id;
-
     const cachedNode = new CachedNode(
-      dbNode.data.id,
-      dbNode.level,
-      parentId,
-      dbNode.data.name
+      dbNode.id,
+      dbNode.parentId,
+      dbNode.name,
+      'unmodified'
     );
 
     this._flatCachedNodes.push(cachedNode);
@@ -52,17 +49,18 @@ export class CachedTreeModelService {
 
   removeFocusedNode() {
     const node = this._treeModel.getFocusedNode();
+    node.data.state = 'removed';
     this._cascadeMarkAsRemovedOrDelete(node.data);
     this.nodes = this._flatNodesToTree(this._flatCachedNodes);
     this._treeModel.update();
   }
 
   getChangeModel(): ChangeModel {
-    const sortedNodes = this._flatCachedNodes.sort((a, b) => a.level - b.level);
-
-    const newNodes = sortedNodes.filter(x => x.state === 'new');
-    const renamedNodes = sortedNodes.filter(x => x.state === 'renamed');
-    const nodesToRemove = sortedNodes
+    const newNodes = this._flatCachedNodes.filter(x => x.state === 'new');
+    const renamedNodes = this._flatCachedNodes.filter(
+      x => x.state === 'renamed'
+    );
+    const nodesToRemove = this._flatCachedNodes
       .filter(x => x.state === 'removed')
       .map(x => x.id);
 
@@ -83,6 +81,10 @@ export class CachedTreeModelService {
     return changeModel;
   }
 
+  markAllNodesAsUnmodified() {
+    this._flatCachedNodes.forEach(x => x.markAsUnmodified());
+  }
+
   private _cascadeMarkAsRemovedOrDelete(node: CachedNode) {
     if (node.state === 'new') {
       const index = this._flatCachedNodes.findIndex(x => x.id === node.id);
@@ -96,7 +98,8 @@ export class CachedTreeModelService {
 
   private _convertToNodeToInsert(node: CachedNode): NodeToInsert {
     return {
-      parentId: node.parentId > 0 ? node.parentId : null,
+      id: node.id,
+      parentId: node.parentId,
       name: node.name,
       children: node.children.map(n => this._convertToNodeToInsert(n))
     };
@@ -105,8 +108,6 @@ export class CachedTreeModelService {
   private _flatNodesToTree(list: Array<CachedNode>): Array<CachedNode> {
     const roots = [];
     const map: { [key: number]: CachedNode } = {};
-
-    list.sort((a, b) => a.level - b.level);
 
     for (const node of list) {
       map[node.id] = node;

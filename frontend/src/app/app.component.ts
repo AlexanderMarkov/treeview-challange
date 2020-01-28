@@ -34,7 +34,7 @@ export class AppComponent implements OnInit {
     this._cachedTreeModel = new CachedTreeModelService(
       this._cachedTree.treeModel
     );
-    this._refreshRootAndClearCache();
+    this._refreshRoot();
   }
 
   addNewNode() {
@@ -46,14 +46,22 @@ export class AppComponent implements OnInit {
   }
 
   addDbNode() {
-    const dbNode = this._dbTree.treeModel.getFocusedNode();
-    this._cachedTreeModel.addDbNode(dbNode);
+    const id = this._dbTree.treeModel.getFocusedNode().id;
+    this._backend
+      .getNodeById(id)
+      .pipe(tap(dbNode => this._cachedTreeModel.addDbNode(dbNode)))
+      .subscribe();
   }
 
   reset() {
     this._backend
       .reset()
-      .pipe(tap(() => this._refreshRootAndClearCache()))
+      .pipe(tap(() => {
+        this._refreshRoot();
+        this._cachedTreeModel = new CachedTreeModelService(
+          this._cachedTree.treeModel
+        );
+      }))
       .subscribe();
   }
 
@@ -62,22 +70,22 @@ export class AppComponent implements OnInit {
 
     this._backend
       .applyChanges(changeModel)
-      .pipe(tap(() => this._refreshRootAndClearCache()))
+      .pipe(
+        tap(() => {
+          this._refreshRoot();
+          this._cachedTreeModel.markAllNodesAsUnmodified();
+        })
+      )
       .subscribe();
   }
 
-  private _refreshRootAndClearCache() {
+  private _refreshRoot() {
     this._backend
       .getRoot()
       .pipe(
         tap(root => {
           this.dbNodes = [root];
           this._dbTree.treeModel.update();
-
-          this._cachedTreeModel = new CachedTreeModelService(
-            this._cachedTree.treeModel
-          );
-
           this._cdRef.detectChanges();
         })
       )

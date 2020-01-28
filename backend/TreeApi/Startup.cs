@@ -35,6 +35,7 @@ namespace TreeApi
 				options.UseInMemoryDatabase("TreeInMemoryDatabase");
 			});
 
+			services.AddScoped<ITreeDbContextProvider, TreeDbContextProvider>();
 			services.AddScoped<ITreeManager, TreeManager>();
 		}
 

@@ -6,7 +6,7 @@
     <mat-card-content>
       <tree-root #cachedTree [nodes]="cachedNodes">
         <ng-template #treeNodeTemplate let-node let-index="index">
-          <span *ngIf="!node.isFocused || node.data.state === 'removed'; else editNode" [style.background-color]="node.data.state === 'removed' ? 'red' : ''">{{ node.data.name }}</span>
+          <span *ngIf="!node.isFocused || node.data.isRemoved; else editNode" [style.background-color]="node.data.isRemoved ? 'red' : ''">{{ node.data.name }}</span>
           <ng-template #editNode>
             <input type="text" autofocus [(ngModel)]="node.data.name">
           </ng-template>
@@ -14,8 +14,8 @@
       </tree-root>
     </mat-card-content>
     <mat-card-actions>
-      <button mat-button (click)="addNewNode()" [disabled]="!cachedTree.treeModel.focusedNode || cachedTree.treeModel.focusedNode.data.state === 'removed'">+</button>
-      <button mat-button (click)="removeNode()" [disabled]="!cachedTree.treeModel.focusedNode">-</button>
+      <button mat-button (click)="addNewNode()" [disabled]="!cachedTree.treeModel.focusedNode || cachedTree.treeModel.focusedNode.data.isRemoved">+</button>
+      <button mat-button (click)="removeNode()" [disabled]="!cachedTree.treeModel.focusedNode || cachedTree.treeModel.focusedNode.data.isRemoved">-</button>
       <button mat-button (click)="applyChanges()">Apply</button>
       <button mat-button (click)="reset()">Reset</button>
     </mat-card-actions>
