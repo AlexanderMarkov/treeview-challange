@@ -48,4 +48,8 @@ export class TreeBackendApi {
   applyChanges(changeModel: ChangeModel): Observable<any> {
     return this._http.put(`${this._baseUrl}`, changeModel);
   }
+
+  filterOutNotRemovedIds(ids: number[]): Observable<number[]> {
+    return this._http.post<number[]>(`${this._baseUrl}/filterOutNotRemovedIds`, ids);
+  }
 }

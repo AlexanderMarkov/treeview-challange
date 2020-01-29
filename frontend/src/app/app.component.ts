@@ -73,6 +73,19 @@ export class AppComponent implements OnInit {
       .pipe(
         tap(() => {
           this._refreshRoot();
+
+          const idsToRefreshRemovedState = this._cachedTreeModel.getNodeIdsWhichNeedToRefreshRemovedState();
+          if (idsToRefreshRemovedState.length > 0) {
+            this._backend
+              .filterOutNotRemovedIds(idsToRefreshRemovedState)
+              .pipe(
+                tap(idsMarkAsRemoved =>
+                  this._cachedTreeModel.markNodesAsRemoved(idsMarkAsRemoved)
+                )
+              )
+              .subscribe();
+          }
+
           this._cachedTreeModel.markAllNodesAsUnmodified();
         })
       )

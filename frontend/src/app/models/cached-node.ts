@@ -53,4 +53,12 @@ export class CachedNode {
   clearChildren() {
     this.children.length = 0;
   }
+
+  getAllChildrenIds(): Array<number> {
+    let result = this.children.map(x => x.id);
+    this.children.forEach(x => {
+      result = result.concat(x.getAllChildrenIds());
+    });
+    return result;
+  }
 }

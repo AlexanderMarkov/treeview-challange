@@ -13,20 +13,31 @@ export class CachedTreeService {
 
   public nodes = new Array<CachedNode>();
 
+  public getNodeIdsWhichNeedToRefreshRemovedState() {
+    if (this._flatCachedNodes.some(x => x.unsavedState === 'removed')) {
+      return this.nodes
+        .filter(x => x.parentId !== null && x.isRemoved === false)
+        .reduce((result, x) => [...result, x.id, ...x.getAllChildrenIds()], []);
+    }
+    return [];
+  }
+
   constructor(private readonly _treeModel: TreeModel) {}
 
-  addNewNode() {
+  addNewNode(): CachedNode {
     const focusedNode = this._treeModel.getFocusedNode();
     const id = this._nextNewNodeIndexIterator.next().value;
     const newNode = new CachedNode(
       id,
       focusedNode.id,
-      `New Node (${Math.abs(id)})`,
+      `New Node (${id})`,
       'new'
     );
     focusedNode.data.children.push(newNode);
     this._flatCachedNodes.push(newNode);
     this._treeModel.update();
+
+    return newNode;
   }
 
   addDbNode(dbNode: DbNode) {
@@ -47,18 +58,16 @@ export class CachedTreeService {
     this._flatNodesToTree(this._flatCachedNodes).forEach(root => {
       root.cascadeInheritRemovedState();
     });
-    // Delete all 'new' marked as removed nodes
-    this._flatCachedNodes = this._flatCachedNodes.filter(x => !(x.unsavedState === 'new' && x.isRemoved));
-    this.nodes = this._flatNodesToTree(this._flatCachedNodes);
-    this._treeModel.update();
+    this._deleteAllNewUnsavedMarkedAsRemovedNodes();
   }
 
   removeFocusedNode() {
     const node = this._treeModel.getFocusedNode().data as CachedNode;
-    node.unsavedState = 'removed';
-    this._cascadeMarkAsRemovedOrDelete(node);
-    this.nodes = this._flatNodesToTree(this._flatCachedNodes);
-    this._treeModel.update();
+    if (node.unsavedState === 'unmodified') {
+      node.unsavedState = 'removed';
+    }
+    this._cascadeMarkAsRemoved(node);
+    this._deleteAllNewUnsavedMarkedAsRemovedNodes();
   }
 
   getChangeModel(): ChangeModel {
@@ -89,6 +98,22 @@ export class CachedTreeService {
 
   markAllNodesAsUnmodified() {
     this._flatCachedNodes.forEach(x => x.markAsUnmodified());
+  }
+
+  markNodesAsRemoved(ids: number[]) {
+    ids.forEach(id => this._flatCachedNodes.find(x => x.id === id).markAsRemoved());
+    this._treeModel.update();
+  }
+
+  private _deleteAllNewUnsavedMarkedAsRemovedNodes() {
+    this._flatCachedNodes = this._flatCachedNodes.filter(x => !(x.unsavedState === 'new' && x.isRemoved));
+    this.nodes = this._flatNodesToTree(this._flatCachedNodes);
+    this._treeModel.update();
+  }
+
+  private _cascadeMarkAsRemoved(node: CachedNode) {
+    node.markAsRemoved();
+    node.children.forEach(x => x.markAsRemoved());
   }
 
   private _cascadeMarkAsRemovedOrDelete(node: CachedNode) {

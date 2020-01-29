@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TreeApi.Models;
 using TreeApi.Services;
@@ -24,5 +25,8 @@ namespace TreeApi.Controllers
 
 		[HttpPost("reset")]
 		public async Task Reset() => await _treeManager.ResetAsync();
+
+		[HttpPost("filterOutNotRemovedIds")]
+		public async Task<List<long>> FilterOutNotRemovedIds([FromBody]HashSet<long> ids) => await _treeManager.FilterOutNotRemovedIds(ids);
 	}
 }

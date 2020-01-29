@@ -36,14 +36,32 @@ describe('CachedTreeService', () => {
       service.addDbNode({ id: 1 } as DbNode);
 
       when(mockedTreeModel.getFocusedNode()).thenReturn({
-        id: 1,
         data: service.nodes[0]
       } as TreeNode);
 
-      service.addNewNode();
+      const newNode = service.addNewNode();
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: newNode
+      } as TreeNode);
+
       service.removeFocusedNode();
 
-      expect(service.nodes[0].id).toBe(1);
+      expect(service.nodes[0].children.length).toBe(0);
+    });
+
+    it('should change the unsavedState to "removed" only for the focused node', () => {
+      service.addDbNode({ id: 1 } as DbNode);
+      service.addDbNode({ id: 2, parentId: 1 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: service.nodes[0]
+      } as TreeNode);
+
+      service.removeFocusedNode();
+
+      expect(service.nodes[0].unsavedState).toBe('removed');
+      expect(service.nodes[0].children[0].unsavedState).toBe('unmodified');
     });
 
     it('should delete all new nested nodes', () => {
@@ -51,7 +69,6 @@ describe('CachedTreeService', () => {
       service.addDbNode({ id: 21, parentId: 2 } as DbNode);
 
       when(mockedTreeModel.getFocusedNode()).thenReturn({
-        id: service.nodes[1].id,
         data: service.nodes[1]
       } as TreeNode);
 

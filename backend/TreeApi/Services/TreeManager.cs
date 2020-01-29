@@ -13,6 +13,7 @@ namespace TreeApi.Services
 	{
 		Task<Node> GetRootWithRecursiveChildrenAsync();
 		Task<Node> GetNodeByIdAsync(long id);
+		Task<List<long>> FilterOutNotRemovedIds(HashSet<long> ids);
 		Task ResetAsync();
 		Task ApplyChangesAsync(ChangeModel changeModel);
 	}
@@ -158,6 +159,21 @@ namespace TreeApi.Services
 					await context.SaveChangesAsync();
 				}
 			}
+		}
+
+		public async Task<List<long>> FilterOutNotRemovedIds(HashSet<long> ids)
+		{
+			if (ids == null || ids.Count == 0)
+			{
+				return new List<long>();
+			}
+
+			using var context = _contextProvider.CreateContext();
+
+			return await context.Nodes
+				.Where(x => x.IsRemoved && ids.Contains(x.Id))
+				.Select(x => x.Id)
+				.ToListAsync();
 		}
 	}
 }
