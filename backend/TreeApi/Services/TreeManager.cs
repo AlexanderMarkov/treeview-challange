@@ -123,25 +123,26 @@ namespace TreeApi.Services
 
 			await context.SaveChangesAsync();
 
-			/* Cascade mark all children as removed without recursion */
+			/* Cascade mark all children as removed */
 			const int numberOfItemsInBatch = 2;
 
 			var parentIdsQueue = new Queue<long>(ids);
 
 			while (parentIdsQueue.TryDequeue(out long parentId))
 			{
-				var childrenCount = await context.Nodes.LongCountAsync(x => x.ParentId == parentId);
-				var numberOfBatches = (long)Math.Ceiling(childrenCount / (double)numberOfItemsInBatch);
-
-				for (var i = 1; i <= numberOfBatches; i++)
+				while (true)
 				{
 					var childrenIds =
 						await context.Nodes
-							.Where(x => x.ParentId == parentId)
-							.Skip((i - 1) * numberOfItemsInBatch)
+							.Where(x => x.ParentId == parentId && x.IsRemoved == false)
 							.Take(numberOfItemsInBatch)
 							.Select(x => x.Id)
 							.ToListAsync();
+
+					if (childrenIds.Count == 0)
+					{
+						break;
+					}
 
 					childrenIds.ForEach(id =>
 					{
@@ -157,6 +158,11 @@ namespace TreeApi.Services
 					});
 
 					await context.SaveChangesAsync();
+
+					if (childrenIds.Count < numberOfItemsInBatch)
+					{
+						break;
+					}
 				}
 			}
 		}
