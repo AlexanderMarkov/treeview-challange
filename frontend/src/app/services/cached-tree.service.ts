@@ -71,7 +71,7 @@ export class CachedTreeService {
       x => x.unsavedState === 'renamed'
     );
     const nodesToRemove = this._flatCachedNodes
-      .filter(x => x.unsavedState === 'removed')
+      .filter(x => x.unsavedState === 'removed' || (x.unsavedState === 'renamed' && x.isRemoved))
       .map(x => x.id);
 
     const nodesToInsert = this._flatNodesToTree(newNodes).map(node =>

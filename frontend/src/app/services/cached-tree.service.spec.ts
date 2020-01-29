@@ -1,6 +1,6 @@
 import { mock, when, instance } from 'ts-mockito';
 import { TreeModel, TreeNode } from 'angular-tree-component';
-import { DbNode } from './tree-api.service';
+import { DbNode, ChangeModel } from './tree-api.service';
 import { CachedTreeService } from './cached-tree.service';
 
 describe('CachedTreeService', () => {
@@ -147,6 +147,28 @@ describe('CachedTreeService', () => {
       service.removeFocusedNode();
 
       expect(service.getNodeIdsWhichNeedToRefreshRemovedState()).toEqual([2111]);
+    });
+  });
+
+  describe('getChangeModel', () => {
+    it('should remove and rename same time', () => {
+      const node = service.addDbNode({ id: 1 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node
+      } as TreeNode);
+
+      node.name = 'new name';
+      service.removeFocusedNode();
+
+      const changeModel = service.getChangeModel();
+      expect(changeModel).toEqual({
+        nodesToRemove: [1],
+        nodesToUpdate: {
+          1: 'new name'
+        },
+        nodesToInsert: []
+      } as ChangeModel);
     });
   });
 
