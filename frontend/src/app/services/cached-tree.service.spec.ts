@@ -103,4 +103,51 @@ describe('CachedTreeService', () => {
 
   });
 
+  describe('getNodeIdsWhichNeedToRefreshRemovedState', () => {
+    it('should return empty array if no nodes marked as removed', () => {
+      service.addDbNode({ id: 1 } as DbNode);
+      service.addDbNode({ id: 21, parentId: 2 } as DbNode);
+
+      expect(service.getNodeIdsWhichNeedToRefreshRemovedState()).toEqual([]);
+    });
+
+    it('should not include already removed nodes', () => {
+      const node1 = service.addDbNode({ id: 1 } as DbNode);
+      service.addDbNode({ id: 21, parentId: 2 } as DbNode);
+      service.addDbNode({ id: 211, parentId: 21 } as DbNode);
+
+      const node211 = service.addDbNode({ id: 221, parentId: 21 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node211
+      } as TreeNode);
+
+      service.removeFocusedNode();
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node1
+      } as TreeNode);
+
+      service.removeFocusedNode();
+
+      expect(service.getNodeIdsWhichNeedToRefreshRemovedState()).toEqual([21, 211]);
+    });
+
+    it('should not include root and all its children', () => {
+      service.addDbNode({ id: 1 } as DbNode);
+      service.addDbNode({ id: 21, parentId: 1 } as DbNode);
+      const node22 = service.addDbNode({ id: 22, parentId: 1 } as DbNode);
+
+      service.addDbNode({ id: 2111, parentId: 211 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node22
+      } as TreeNode);
+
+      service.removeFocusedNode();
+
+      expect(service.getNodeIdsWhichNeedToRefreshRemovedState()).toEqual([2111]);
+    });
+  });
+
 });

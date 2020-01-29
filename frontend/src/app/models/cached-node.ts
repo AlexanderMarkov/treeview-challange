@@ -61,7 +61,9 @@ export class CachedNode {
   }
 
   getAllChildrenIds(): Array<number> {
-    let result = this.children.map(x => x.id);
+    let result = this.children
+      .filter(x => x.isRemoved === false)
+      .map(x => x.id);
     this.children.forEach(x => {
       result = result.concat(x.getAllChildrenIds());
     });

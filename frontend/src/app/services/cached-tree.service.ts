@@ -33,7 +33,7 @@ export class CachedTreeService {
     return newNode;
   }
 
-  addDbNode(dbNode: DbNode) {
+  addDbNode(dbNode: DbNode): CachedNode {
     const existsInCache = !!this._treeModel.getNodeById(dbNode.id);
     if (existsInCache) {
       return;
@@ -52,6 +52,8 @@ export class CachedTreeService {
       root.cascadeInheritRemovedFlag();
     });
     this._deleteAllNewUnsavedMarkedAsRemovedNodes();
+
+    return cachedNode;
   }
 
   removeFocusedNode() {
@@ -99,9 +101,8 @@ export class CachedTreeService {
 
   getNodeIdsWhichNeedToRefreshRemovedState(): Array<number> {
     if (this._flatCachedNodes.some(x => x.unsavedState === 'removed')) {
-      return this.nodes
-        .filter(x => x.parentId !== null && x.isRemoved === false)
-        .reduce((result, x) => [...result, x.id, ...x.getAllChildrenIds()], []);
+      const nodes = this.nodes.filter(x => x.parentId && x.isRemoved === false);
+      return nodes.reduce((result, x) => [...result, x.id, ...x.getAllChildrenIds()], []);
     }
     return [];
   }
