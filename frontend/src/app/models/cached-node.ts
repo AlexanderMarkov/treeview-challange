@@ -33,9 +33,15 @@ export class CachedNode {
 
   markAsRemoved() {
     this._isRemoved = true;
+    this.children.forEach(x => x.markAsRemoved());
   }
 
-  markAsUnmodified() {
+  cascadeMarkAsRemoved() {
+    this.markAsRemoved();
+    this.children.forEach(x => x.markAsRemoved());
+  }
+
+  resetUnsavedState() {
     this.unsavedState = 'unmodified';
   }
 
@@ -43,11 +49,11 @@ export class CachedNode {
     this.children.push(child);
   }
 
-  cascadeInheritRemovedState(isParentRemoved?: boolean) {
+  cascadeInheritRemovedFlag(isParentRemoved?: boolean) {
     if (isParentRemoved) {
       this.markAsRemoved();
     }
-    this.children.forEach(c => c.cascadeInheritRemovedState(this.isRemoved));
+    this.children.forEach(c => c.cascadeInheritRemovedFlag(this.isRemoved));
   }
 
   clearChildren() {

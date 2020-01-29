@@ -85,6 +85,22 @@ describe('CachedTreeService', () => {
       expect(service.nodes[0].children[0].children[0].children.length).toBe(0);
     });
 
+    it('should mark as removed all nested nodes', () => {
+      service.addDbNode({ id: 1 } as DbNode);
+      service.addDbNode({ id: 21, parentId: 1 } as DbNode);
+      service.addDbNode({ id: 211, parentId: 21 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: service.nodes[0]
+      } as TreeNode);
+
+      service.removeFocusedNode();
+
+      expect(service.nodes[0].isRemoved).toBeTruthy();
+      expect(service.nodes[0].children[0].isRemoved).toBeTruthy();
+      expect(service.nodes[0].children[0].children[0].isRemoved).toBeTruthy();
+    });
+
   });
 
 });

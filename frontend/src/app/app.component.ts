@@ -86,7 +86,7 @@ export class AppComponent implements OnInit {
               .subscribe();
           }
 
-          this._cachedTreeModel.markAllNodesAsUnmodified();
+          this._cachedTreeModel.resetUnsavedStateForAllNodes();
         })
       )
       .subscribe();
