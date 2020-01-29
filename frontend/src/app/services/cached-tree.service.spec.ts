@@ -1,6 +1,6 @@
 import { mock, when, instance } from 'ts-mockito';
 import { TreeModel, TreeNode } from 'angular-tree-component';
-import { DbNode, ChangeModel } from './tree-api.service';
+import { DbNode, ChangeModel, NodeToInsert } from './tree-api.service';
 import { CachedTreeService } from './cached-tree.service';
 
 describe('CachedTreeService', () => {
@@ -151,7 +151,15 @@ describe('CachedTreeService', () => {
   });
 
   describe('getChangeModel', () => {
-    it('should remove and rename same time', () => {
+    it('should be empty in case of no changes', () => {
+      expect(service.getChangeModel()).toEqual({
+        nodesToRemove: [],
+        nodesToUpdate: {},
+        nodesToInsert: []
+      } as ChangeModel);
+    });
+
+    it('should remove and rename same node', () => {
       const node = service.addDbNode({ id: 1 } as DbNode);
 
       when(mockedTreeModel.getFocusedNode()).thenReturn({
@@ -161,13 +169,46 @@ describe('CachedTreeService', () => {
       node.name = 'new name';
       service.removeFocusedNode();
 
-      const changeModel = service.getChangeModel();
-      expect(changeModel).toEqual({
+      expect(service.getChangeModel()).toEqual({
         nodesToRemove: [1],
         nodesToUpdate: {
           1: 'new name'
         },
         nodesToInsert: []
+      } as ChangeModel);
+    });
+
+    it('should remove, rename and insert different nodes', () => {
+      const node1 = service.addDbNode({ id: 1 } as DbNode);
+      const node21 = service.addDbNode({ id: 21, parentId: 1 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node1
+      } as TreeNode);
+
+      const node22 = service.addNewNode();
+
+      node1.name = 'new node1';
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node21
+      } as TreeNode);
+
+      service.removeFocusedNode();
+
+      expect(service.getChangeModel()).toEqual({
+        nodesToRemove: [21],
+        nodesToUpdate: {
+          1: 'new node1'
+        },
+        nodesToInsert: [
+          {
+            id: node22.id,
+            parentId: 1,
+            name: `New Node (${node22.id})`,
+            children: []
+          } as NodeToInsert
+        ]
       } as ChangeModel);
     });
   });
