@@ -100,7 +100,7 @@ export class CachedTreeService {
   }
 
   getNodeIdsWhichNeedToRefreshRemovedState(): Array<number> {
-    if (this._flatCachedNodes.some(x => x.unsavedState === 'removed')) {
+    if (this._flatCachedNodes.some(x => x.unsavedState === 'removed' || (x.unsavedState === 'renamed' && x.isRemoved))) {
       const nodes = this.nodes.filter(x => x.parentId && x.isRemoved === false);
       return nodes.reduce((result, x) => [...result, x.id, ...x.getAllChildrenIds()], []);
     }

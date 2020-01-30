@@ -133,6 +133,22 @@ describe('CachedTreeService', () => {
       expect(service.getNodeIdsWhichNeedToRefreshRemovedState()).toEqual([21, 211]);
     });
 
+    it('should include renamed nodes', () => {
+      const node1 = service.addDbNode({ id: 1 } as DbNode);
+      const node21 = service.addDbNode({ id: 21, parentId: 2 } as DbNode);
+
+      when(mockedTreeModel.getFocusedNode()).thenReturn({
+        data: node1
+      } as TreeNode);
+
+      node1.name = 'new name 1';
+      service.removeFocusedNode();
+
+      node21.name = 'new name 21';
+
+      expect(service.getNodeIdsWhichNeedToRefreshRemovedState()).toEqual([21]);
+    });
+
     it('should not include root and all its children', () => {
       service.addDbNode({ id: 1 } as DbNode);
       service.addDbNode({ id: 21, parentId: 1 } as DbNode);
