@@ -29,7 +29,6 @@ export interface ChangeModel {
 export class TreeBackendApi {
 
   private readonly _baseUrl = '/api/tree';
-  // private readonly _baseUrl = 'http://localhost:5000/tree';
 
   constructor(private _http: HttpClient) {}
 
@@ -50,6 +49,9 @@ export class TreeBackendApi {
   }
 
   filterOutNotRemovedIds(ids: number[]): Observable<number[]> {
-    return this._http.post<number[]>(`${this._baseUrl}/filterOutNotRemovedIds`, ids);
+    return this._http.post<number[]>(
+      `${this._baseUrl}/filterOutNotRemovedIds`,
+      ids
+    );
   }
 }
