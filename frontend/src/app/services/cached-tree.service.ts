@@ -1,5 +1,5 @@
 import { TreeModel } from 'angular-tree-component';
-import { CachedNode } from '../models/cached-node';
+import { CachedNode, CachedNodeUnsavedState } from '../models/cached-node';
 import { ChangeModel, NodeToInsert, DbNode } from './tree-api.service';
 
 export class CachedTreeService {
@@ -23,7 +23,7 @@ export class CachedTreeService {
       newId,
       focusedNode.id,
       `New Node (${newId})`,
-      'new'
+      CachedNodeUnsavedState.New
     );
 
     focusedNode.children.push(newNode);
@@ -43,7 +43,7 @@ export class CachedTreeService {
       dbNode.id,
       dbNode.parentId,
       dbNode.name,
-      'unmodified'
+      CachedNodeUnsavedState.Unmodified
     );
 
     this._flatCachedNodes.push(cachedNode);
@@ -58,20 +58,28 @@ export class CachedTreeService {
 
   removeFocusedNode() {
     const node = this._treeModel.getFocusedNode().data as CachedNode;
-    if (node.unsavedState === 'unmodified') {
-      node.unsavedState = 'removed';
+    if (node.unsavedState === CachedNodeUnsavedState.Unmodified) {
+      node.unsavedState = CachedNodeUnsavedState.Removed;
+    } else {
+      node.unsavedState |= CachedNodeUnsavedState.Removed;
     }
     node.cascadeMarkAsRemoved();
     this._deleteAllNewUnsavedMarkedAsRemovedNodes();
   }
 
   getChangeModel(): ChangeModel {
-    const newNodes = this._flatCachedNodes.filter(x => x.unsavedState === 'new');
+    const newNodes = this._flatCachedNodes.filter(x => x.unsavedState === CachedNodeUnsavedState.New);
     const renamedNodes = this._flatCachedNodes.filter(
-      x => x.unsavedState === 'renamed'
+      x =>
+        (x.unsavedState & CachedNodeUnsavedState.Renamed) ===
+        CachedNodeUnsavedState.Renamed
     );
     const nodesToRemove = this._flatCachedNodes
-      .filter(x => x.unsavedState === 'removed' || (x.unsavedState === 'renamed' && x.isRemoved))
+      .filter(
+        x =>
+          (x.unsavedState & CachedNodeUnsavedState.Removed) ===
+          CachedNodeUnsavedState.Removed
+      )
       .map(x => x.id);
 
     const nodesToInsert = this._flatNodesToTree(newNodes).map(node =>
@@ -100,21 +108,36 @@ export class CachedTreeService {
   }
 
   getNodeIdsWhichNeedToRefreshRemovedState(): Array<number> {
-    if (this._flatCachedNodes.some(x => x.unsavedState === 'removed' || (x.unsavedState === 'renamed' && x.isRemoved))) {
+    if (
+      this._flatCachedNodes.some(
+        x =>
+          (x.unsavedState & CachedNodeUnsavedState.Removed) ===
+          CachedNodeUnsavedState.Removed
+      )
+    ) {
       const nodes = this.nodes.filter(x => x.parentId && x.isRemoved === false);
-      return nodes.reduce((result, x) => [...result, x.id, ...x.getAllChildrenIds()], []);
+      return nodes.reduce(
+        (result, x) => [...result, x.id, ...x.getAllChildrenIds()],
+        []
+      );
     }
     return [];
   }
 
   private _deleteAllNewUnsavedMarkedAsRemovedNodes() {
-    this._flatCachedNodes = this._flatCachedNodes.filter(x => !(x.unsavedState === 'new' && x.isRemoved));
+    this._flatCachedNodes = this._flatCachedNodes.filter(
+      x =>
+        !(
+          (x.unsavedState & CachedNodeUnsavedState.New) ===
+            CachedNodeUnsavedState.New && x.isRemoved
+        )
+    );
     this.nodes = this._flatNodesToTree(this._flatCachedNodes);
     this._treeModel.update();
   }
 
   private _cascadeMarkAsRemovedOrDelete(node: CachedNode) {
-    if (node.unsavedState === 'new') {
+    if (node.unsavedState === CachedNodeUnsavedState.New) {
       const index = this._flatCachedNodes.findIndex(x => x.id === node.id);
       this._flatCachedNodes.splice(index, 1);
     } else {

@@ -1,4 +1,9 @@
-export type CachedNodeUnsavedState = 'new' | 'removed' | 'renamed' | 'unmodified';
+export enum CachedNodeUnsavedState {
+  Unmodified,
+  New = 1 << 1,
+  Removed = 1 << 2,
+  Renamed = 1 << 3
+}
 
 export class CachedNode {
   private readonly _originalName: string;
@@ -15,8 +20,8 @@ export class CachedNode {
 
   public set name(value: string) {
     this._name = value;
-    if (this.unsavedState === 'unmodified' && this._name !== this._originalName) {
-      this.unsavedState = 'renamed';
+    if (this.unsavedState === CachedNodeUnsavedState.Unmodified && this._name !== this._originalName) {
+      this.unsavedState = CachedNodeUnsavedState.Renamed;
     }
   }
 
@@ -42,7 +47,7 @@ export class CachedNode {
   }
 
   resetUnsavedState() {
-    this.unsavedState = 'unmodified';
+    this.unsavedState = CachedNodeUnsavedState.Unmodified;
   }
 
   addChild(child: CachedNode) {

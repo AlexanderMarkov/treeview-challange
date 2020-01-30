@@ -2,6 +2,7 @@ import { mock, when, instance } from 'ts-mockito';
 import { TreeModel, TreeNode } from 'angular-tree-component';
 import { DbNode, ChangeModel, NodeToInsert } from './tree-api.service';
 import { CachedTreeService } from './cached-tree.service';
+import { CachedNodeUnsavedState } from '../models/cached-node';
 
 describe('CachedTreeService', () => {
   let mockedTreeModel: TreeModel;
@@ -33,10 +34,10 @@ describe('CachedTreeService', () => {
   describe('removeFocusedNode', () => {
 
     it('should delete the focused node if it has a "new" state', () => {
-      service.addDbNode({ id: 1 } as DbNode);
+      const root = service.addDbNode({ id: 1 } as DbNode);
 
       when(mockedTreeModel.getFocusedNode()).thenReturn({
-        data: service.nodes[0]
+        data: root
       } as TreeNode);
 
       const newNode = service.addNewNode();
@@ -47,7 +48,7 @@ describe('CachedTreeService', () => {
 
       service.removeFocusedNode();
 
-      expect(service.nodes[0].children.length).toBe(0);
+      expect(root.children.length).toBe(0);
     });
 
     it('should change the unsavedState to "removed" only for the focused node', () => {
@@ -60,8 +61,8 @@ describe('CachedTreeService', () => {
 
       service.removeFocusedNode();
 
-      expect(service.nodes[0].unsavedState).toBe('removed');
-      expect(service.nodes[0].children[0].unsavedState).toBe('unmodified');
+      expect(service.nodes[0].unsavedState).toBe(CachedNodeUnsavedState.Removed);
+      expect(service.nodes[0].children[0].unsavedState).toBe(CachedNodeUnsavedState.Unmodified);
     });
 
     it('should delete all new nested nodes', () => {
