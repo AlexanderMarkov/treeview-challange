@@ -5,26 +5,14 @@ import { ChangeModel, NodeToInsert, DbNode } from './tree-api.service';
 export class CachedTreeService {
   private _flatCachedNodes = new Array<CachedNode>();
 
-  private _nextNewNodeIndexIterator = (function*() {
-    while (true) {
-      yield + new Date();
-    }
-  })();
-
   public nodes = new Array<CachedNode>();
 
   constructor(private readonly _treeModel: TreeModel) {}
 
   addNewNode(): CachedNode {
     const focusedNode = this._treeModel.getFocusedNode().data as CachedNode;
-    const newId = this._nextNewNodeIndexIterator.next().value;
-
-    const newNode = new CachedNode(
-      newId,
-      focusedNode.id,
-      `New Node (${newId})`,
-      CachedNodeUnsavedState.New
-    );
+    const parentId = focusedNode.id;
+    const newNode = CachedNode.createNew(parentId);
 
     focusedNode.children.push(newNode);
     this._flatCachedNodes.push(newNode);
@@ -39,11 +27,10 @@ export class CachedTreeService {
       return;
     }
 
-    const cachedNode = new CachedNode(
+    const cachedNode = CachedNode.createFromDb(
       dbNode.id,
       dbNode.parentId,
-      dbNode.name,
-      CachedNodeUnsavedState.Unmodified
+      dbNode.name
     );
 
     this._flatCachedNodes.push(cachedNode);

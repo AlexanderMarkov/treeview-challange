@@ -27,7 +27,16 @@ export class CachedNode {
 
   public readonly children = new Array<CachedNode>();
 
-  constructor(
+  static createFromDb(id: number, parentId: number | null, name: string): CachedNode {
+    return new CachedNode(id, parentId, name, CachedNodeUnsavedState.Unmodified);
+  }
+
+  static createNew(parentId: number): CachedNode {
+    const id = + new Date();
+    return new CachedNode(id, parentId, `New Node (${id})`, CachedNodeUnsavedState.New);
+  }
+
+  private constructor(
     public readonly id: number,
     public readonly parentId: number | null,
     name: string,
