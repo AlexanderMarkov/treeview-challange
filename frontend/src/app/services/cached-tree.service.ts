@@ -123,17 +123,6 @@ export class CachedTreeService {
     this._treeModel.update();
   }
 
-  private _cascadeMarkAsRemovedOrDelete(node: CachedNode) {
-    if (node.unsavedState === CachedNodeUnsavedState.New) {
-      const index = this._flatCachedNodes.findIndex(x => x.id === node.id);
-      this._flatCachedNodes.splice(index, 1);
-    } else {
-      node.cascadeMarkAsRemoved();
-    }
-    node.children.forEach(n => this._cascadeMarkAsRemovedOrDelete(n));
-  }
-
-
   private _convertToNodeToInsert(node: CachedNode): NodeToInsert {
     return {
       id: node.id,
